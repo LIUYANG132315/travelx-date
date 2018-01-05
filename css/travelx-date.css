@@ -1,0 +1,49 @@
+/*周六，周日样式*/
+.restDay{
+	
+}
+/*24节气样式*/
+.solar-terms{
+	
+}
+/*农历节日*/
+.lunar-fes{
+	
+}
+/*农历标星 节日*/
+.lunar-fes.lunar-star{
+	
+}
+/*公历节日*/
+.solar-fes{
+	
+}
+/*公历标星 节日*/
+.solar-fes.solar-star{
+	
+}
+
+
+
+
+
+
+
+.tdate-wrap{
+	position: absolute;
+	width: 200px;
+	height: 100px;
+	background: #f00;
+}
+
+
+
+
+
+
+
+
+
+
+
+
