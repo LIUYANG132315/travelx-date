@@ -2,60 +2,241 @@
  	travelX 节日 日历
  * */
 
-function TDate( dom, option ){
+function TDate( option ){
+	var dom = option.el;
 	if( typeof dom === "string" ){
 		this.tDom = document.querySelector( dom );
 	}else if( !(dom instanceof Array) ){
 		this.tDom = dom;
 	}
 	
+	this.weeks = ["日","一","二","三","四","五","六"];
+	
 	var today = new Date();
 	this.year = today.getFullYear();
 	this.month = today.getMonth();
 	this.day = today.getDate();
+	this.startDate = this.year + '-' + (this.month+1) + '-' + this.day;
 	
+	this.targetMonth = this.str1date(this.startDate)[1] - 0;
+	this.targetYear = this.str1date(this.startDate)[0] - 0;
+	this.cb = option && option.cb;
 	
 	this.init();
 }
 
 
 
-TDate.prototype.init = function(){
+TDate.prototype.init = function( datestr ){
 	console.log( this.tDom );
 	
+	if( datestr ){  //创建完成后，刷新
+		this.startDate = datestr;
+		this.targetMonth = this.str1date( datestr )[1] - 0;
+		this.targetYear = this.str1date( datestr )[0] - 0;
+	}
 	
-	var m1 = this.handleMonth( this.year, this.month );
-	var m2 = this.handleMonth( this.year, this.month+1 );
-	this.createDate( m1, m2 );
 	
+	if( this.wrapDom ){
+		this.wrapDom.parentNode.removeChild( this.wrapDom );
+	}
+	this.createDate();
+	this.initEventBind(); 
 }
 
+/**
+ * 初始绑定一些全局事件
+ */
+TDate.prototype.initEventBind = function(){
+	var that = this;
+	this.addEvent( this.tDom, 'click', function(e){
+		e.stopPropagation();
+		that.wrapDom.style.display = 'block';
+	} );
+	this.addEvent( this.wrapDom, 'click', function(e){
+		e.stopPropagation();
+	} );
+	this.addEvent( document, 'click', function(){
+		that.wrapDom.style.display = 'none';
+	} );
+}
+
+/**
+ * 月份切换 处理
+ */
 TDate.prototype.handleMonth = function( y, m ){
-	if( m >= 12 ){
+	var m_data = [];
+	if( m > 11 ){
 		m = 0;
 		y = y + 1;
+		
+	}else if( m < 0 ){
+		m = 11;
+		y = y - 1;
 	}
-	return this.getDateInfo( y, m );
+	this.targetMonth = m;
+	this.targetYear = y;
+	console.log(this.targetMonth,this.targetYear);
+	var n = m + 1;
+	m_data.push( this.getDateInfo( y, m ) );
+	
+	if( n > 11 ){
+		n = 0;
+		y = y + 1;
+	}else if( n < 0 ){
+		n = 11;
+		y = y - 1;
+	}
+	m_data.push( this.getDateInfo( y, n ) );
+	
+	
+	return m_data;
 }
 //创建日历结构
-TDate.prototype.createDate = function( m1, m2 ){
-	console.log( m1, m2 );
+TDate.prototype.createDate = function( ){
+	var tData = this.handleMonth( this.targetYear, this.targetMonth ); //拿到日期数据
+	
+	console.log( tData );
 	var _dom = this.tDom;
 	var wrapDom = document.createElement('div');
+	this.wrapDom = wrapDom;
 	wrapDom.className = "tdate-wrap";
 	wrapDom.style.left = _dom.offsetLeft + 'px';
-	wrapDom.style.top = (_dom.offsetTop + _dom.offsetHeight) + 'px';
+	wrapDom.style.top = ( _dom.offsetTop + _dom.offsetHeight ) + 'px';
 	
-	for( var i = 0, len = m1.length; i < len; i++ ){
-		
-	}
+	var headStr = '<div class="d-header"><div class="left-month month-title"><i class="left-m-btn"></i><span class="t-month">'+ tData[0][0].sy +'年'+ tData[0][0].s_m +'月</span></div><div class="right-month month-title"><i class="right-m-btn"></i><span class="t-month">'+ tData[1][0].sy +'年'+ tData[1][0].s_m +'月</span></div></div>';
+	wrapDom.innerHTML = headStr;
+	var contDom = document.createElement('div');
+	contDom.className = "d-cont";
 	
+	this.handleDomStr( tData, contDom  );
 	
-	
-	
+	wrapDom.appendChild( contDom );
+
 	document.body.appendChild( wrapDom );
 	
+	//日期左右按钮 切换
+	var that = this;
+	function l_selMonth(){
+		that.targetMonth-- ;
+		var mons = that.handleMonth( that.targetYear, that.targetMonth );
+		that.handleDomStr( mons, contDom  );
+	}
+	function r_selMonth(){
+		that.targetMonth++ ;
+		var mons = that.handleMonth( that.targetYear, that.targetMonth );
+		that.handleDomStr( mons, contDom  );
+	}
+	var l_click_dom = wrapDom.querySelector('.left-m-btn');
+	var r_click_dom = wrapDom.querySelector('.right-m-btn');
+	this.addEvent( l_click_dom, 'click', l_selMonth );
+	this.addEvent( r_click_dom, 'click', r_selMonth );
 }
+
+TDate.prototype.handleDomStr = function( tData, contDom ){
+	//tData 两个月的时间数据 
+	this.wrapDom.querySelector('.left-month .t-month').innerHTML = tData[0][0].sy +'年'+ tData[0][0].s_m +'月';
+	this.wrapDom.querySelector('.right-month .t-month').innerHTML = tData[1][0].sy +'年'+ tData[1][0].s_m +'月';
+	
+	contDom.innerHTML = '';
+	var that = this;
+	tData.forEach(function( obj ){
+		var monthDom = document.createElement('div');
+		monthDom.className = "d-month";
+		var f_week = obj.firstWeek;
+		var d_arr = Array.prototype.slice.call(obj,0);
+		
+		var bodyStr = '<table cellspacing="0" cellpadding="0"><thead><tr>';
+		
+		this.weeks.forEach(function( item, index ){
+			if( index == 0 || index == 6 ){
+				bodyStr += '<th class="restDay">'+ item +'</th>';
+			}else{
+				bodyStr += '<th>'+ item +'</th>';
+			}
+			
+		});
+		bodyStr += '</tr></thead><tbody><tr>';
+		
+	
+		for( var i = 0; i < f_week; i++ ){
+			bodyStr += '<td></td>';
+		}
+		
+		d_arr.forEach(function( item, i ){
+			var l = f_week + i;
+			if( l % 7 === 0 ){
+				bodyStr += '</tr><tr>'
+			}
+			
+			var text = item.s_d;
+			var dateStr = item.sy + '-' + item.s_m + '-' + item.s_d;
+			
+			
+			if( that.compareStrDate( that.startDate, dateStr ) == 1 ){
+				var tdClass = 'out-d';
+			}else{
+				var tdClass = 'cho-d';
+			}
+			
+			
+			if( item.solar_festival ){   //公历节日
+				text = item.solar_festival.slice(0,2);
+				tdClass += ' ' + item.color;
+			}
+			if( item.lunar_festival ){  //农历节日
+				text = item.lunar_festival.slice(0,2);
+				tdClass += ' ' + item.color;
+			}
+			if( item.istoday ){
+				text = '今天';
+				tdClass += ' d-today'; 
+			}
+//			if( item.solarTerms ){  //24节气
+//				text = item.solarTerms.slice(0,2);
+//				tdClass += ' ' + item.color;
+//			}
+			bodyStr += '<td id="'+ dateStr +'" class="'+ tdClass +'">'+ text +'</td>';
+		});
+	
+		for( var i = 0; i < 7-( d_arr.length + f_week )%7; i++ ){
+			bodyStr += '<td></td>';
+		}
+		
+		
+		bodyStr += '</tr></tbody></table>';
+		
+		monthDom.innerHTML = bodyStr;
+		
+		contDom.appendChild( monthDom );
+	}.bind(this));
+	
+	//给tr绑定事件
+	var tr_list = contDom.querySelectorAll('.cho-d');
+	tr_list.forEach(function( tr, i ){
+		(function(i){	
+			that.addEvent( tr, 'click', function(){
+				var this_d = that.formatDate( this.id );
+				if( that.tDom.nodeName == "INPUT"){
+					that.tDom.value = this_d;
+				}else{
+					that.tDom.innerText = this_d;
+				}
+				
+				console.log( this_d )
+				that.cb && that.cb( this_d );
+				that.wrapDom.style.display = "none";
+			});			
+		})(i);
+		
+		
+	});
+	
+	
+//	return monthDom;
+}
+
+
 
 //绑定事件
 TDate.prototype.addEvent = function (ele, type, fn, isC ){
@@ -124,24 +305,14 @@ TDate.prototype.getDateInfo = function( y, m ){
 	"0214 情人节",
 	"0308 妇女节",
 	"0312 植树节",
-	"0315 消费者权益日",
 	"0401 愚人节",
 	"0501*劳动节",
 	"0504 青年节",
-	"0512 护士节",
 	"0601 儿童节",
-	"0701 建党节 香港回归纪念",
 	"0801 建军节",
-	"0909 毛泽东逝世纪念",
 	"0910 教师节",
-	"0928 孔子诞辰",
 	"1001*国庆节",
-	"1006 老人节",
-	"1024 联合国日",
-	"1112 孙中山诞辰纪念",
-	"1220 澳门回归纪念",
-	"1225 圣诞节",
-	"1226 毛泽东诞辰纪念")
+	"1225 圣诞节")
 	
 	//农历节日 *表示放假日
 	var lunar_fes = new Array(
@@ -149,7 +320,6 @@ TDate.prototype.getDateInfo = function( y, m ){
 	"0115 元宵节",
 	"0505 端午节",
 	"0707 七夕情人节",
-	"0715 中元节",
 	"0815 中秋节",
 	"0909 重阳节",
 	"1208 腊八节",
@@ -443,4 +613,65 @@ TDate.prototype.getDateInfo = function( y, m ){
 
 
 
-var d = new TDate('input');
+
+TDate.prototype.str1date = function(str) {
+    var ar = str.split('-');
+    // 返回日期格式
+    return [ar[0], ar[1] - 1, ar[2]];
+};
+
+/**
+ * @description 把时间字串转成时间格式
+ * @param {String} str 时间字符串
+ */ 
+
+TDate.prototype.str2date = function(str) {
+    var ar = str.split('-');
+    // 返回日期格式
+    return new Date(ar[0], ar[1] - 1, ar[2]);
+};
+
+/**
+ * @description 比较两个时间字串的大小:1 大于; 0 等于; -1 小于
+ * @param {String} b 待比较时间串1
+ * @param {String} e 待比较时间串2
+ */
+TDate.prototype.compareStrDate = function(b, e) {
+    var bDate = this.str2date(b);
+    var eDate = this.str2date(e);
+
+    // 1 大于; 0 等于; -1 小于
+    if(bDate.getTime() > eDate.getTime()) {
+        return 1;
+    } else if(bDate.getTime() == eDate.getTime()) {
+        return 0;
+    } else {
+        return -1;
+    }
+};
+/**
+ * @description 日期格式化，加前导零
+ */ 
+TDate.prototype.formatDate = function(ymd) {
+    return ymd.replace(/(\d{4})\-(\d{1,2})\-(\d{1,2})/g, function(ymdFormatDate, y, m, d){
+        if(m < 10){
+            m = '0' + m;
+        }
+        if(d < 10){
+            d = '0' + d;
+        }
+        return y + '-' + m + '-' + d;
+    });
+};
+
+
+var option = {
+	el: '#ipt01',
+	startDate:'2018-1-8', 
+	endDate: '',
+	cb: function(d){
+		alert(d);
+	}
+};
+
+var d1 = new TDate( option );

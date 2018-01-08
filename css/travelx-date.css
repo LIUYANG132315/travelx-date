@@ -31,35 +31,98 @@
 
 .tdate-wrap{
 	position: absolute;
-	
+	width: 556px;
+	background-color: #fff;
+	/*border: 1px solid #dfdce3;*/
+    box-shadow: 0 2px 3px #b6b1bd;
+    -moz-box-shadow: 0px 2px 5px #B6B1BD;
+    -webkit-box-shadow: 0px 2px 5px #B6B1BD;
+    z-index: 999;
 }
 
 .tdate-wrap .d-header{
-	padding: 8px 10px;
-	font-size: 18px;
-	background: #666;
+	padding: 8px;
+	line-height: 18px;
+    background-color: #00b2d6;
 	text-align: center;
+	overflow: hidden;
 }
+.d-header .month-title{
+	width: 48%;
+	color: #fff;
+}
+.left-month{
+	float: left;
+}
+.right-month{
+	float: right;
+}
+.month-title>i{
+	display: block;
+	float: left;
+	width: 18px;
+	height: 18px;
+	background: #666;
+	cursor: pointer;
+}
+.left-month .left-m-btn{
+	float: left;
+}
+.right-month .right-m-btn{
+	float: right;
+}
+
+
 .tdate-wrap .d-cont{
-	padding: 10px;
-	font-size: 0;
+	padding: 10px 8px;
+	overflow: hidden;
 }
 .d-cont .d-month{
-	display: inline-block;
-	width: 255px;
-	height: 172px;
+	float: left;
+	width: 48%;
 	font-size: 14px;
+	vertical-align: top;
 }
-.d-cont .d-month:nth-child(1){
-	background: #999;
-}
+
 .d-cont .d-month:nth-child(2){
-	background: #ddd;
+	float: right;
 }
 
+.d-month>table{
+	width: 100%;
+	/*table-layout: fixed;*/
+	text-align: center;
+	font-size: 12px;
+}
+.d-month>table thead .restDay{
+	color: #f00;
+}
 
+.d-month>table th{
+	height: 18px;
+	width: 14.28%;
+}
+.d-month>table td{
+	width: 14.28%;
+	height: 30px;
+	vertical-align: middle;
+}
+.d-month>table td.out-d{
+	opacity: 0.2;
+	cursor: not-allowed;
+	cursor: -ms-not-allowed;
+}
+.d-month>table td.cho-d{
+	cursor: pointer;
+}
+.d-month>table td.cho-d:hover{
+	background-color: #00B2D6;
+	color: #fff;
+}
 
-
+.d-month>table td b{
+	display: block;
+}
 
 
 
