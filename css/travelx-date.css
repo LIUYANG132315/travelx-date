@@ -112,11 +112,13 @@
 .d-month>table th{
 	height: 18px;
 	width: 14.28%;
+	color: #544c63;
 }
 .d-month>table td{
 	width: 14.28%;
 	height: 30px;
 	vertical-align: middle;
+	color: #544c63;
 }
 .d-month>table td.out-d{
 	opacity: 0.2;

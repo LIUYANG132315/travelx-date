@@ -2,48 +2,63 @@
  	travelX 节日 日历
  * */
 
-function TDate( option ){
+function TDate( param ){
+	
 	this.weeks = ["日","一","二","三","四","五","六"];
 	var today = new Date();
 	this.year = today.getFullYear();
 	this.month = today.getMonth();
 	this.day = today.getDate();
+	var todayStr = this.year + '-' + (this.month+1) + '-' + this.day;
 	
-	var dom = option.el;
+	var options = {
+		el:"", //目标dom
+		startDate: todayStr,  //日期可以选择的开始时间
+		endDate: '',          //日期可以选择的结束时间
+		default_Date: todayStr, //日期默认时间
+		isToday: true,   //今天是否可选
+		fep: '-',
+		cb: null
+	}
+	this.options = this.extend( options, param );
+	console.log( this.options );
+	var dom = this.options.el;
 	if( typeof dom === "string" ){
 		this.tDom = document.querySelector( dom );
 	}else if( !(dom instanceof Array) ){
 		this.tDom = dom;
 	}
+
 	
-	
-	this.startDate = option.startDate || ( this.year + '-' + (this.month+1) + '-' + this.day );
-	this.default_Date = option.default_Date || ( this.year + '-' + (this.month+1) + '-' + this.day );
-	this.cb = option.cb;
-	
-	
-	this.targetMonth = this.str1date(this.default_Date)[1] - 0;
-	this.targetYear = this.str1date(this.default_Date)[0] - 0;
 	this.init();
+	this.initEventBind(); 
 }
 
 
 
-TDate.prototype.init = function( datestr ){
-	console.log( this.tDom );
+TDate.prototype.init = function( n_data ){
 	
-	if( datestr ){  //创建完成后，刷新 ，保证日历重新传入的那个月开始
-		this.startDate = datestr;
-		this.targetMonth = this.str1date( datestr )[1] - 0;
-		this.targetYear = this.str1date( datestr )[0] - 0;
+	if( typeof n_data ){
+		this.extend( this.options, n_data );
+	}
+	//this.startDate = this.options.startDate;
+	this.default_Date = this.options.default_Date;
+
+	if( this.default_Date ){
+		this.targetMonth = this.str1date(this.default_Date)[1] - 0;
+		this.targetYear = this.str1date(this.default_Date)[0] - 0;
+	}else{
+		this.targetMonth = this.month;
+		this.targetYear = this.year;
 	}
 	
 	
-	if( this.wrapDom ){
+	
+	if( this.wrapDom ){  //刷新日历时，把之前的日历结构删除
 		this.wrapDom.parentNode.removeChild( this.wrapDom );
 	}
-	this.createDate();
-	this.initEventBind(); 
+	this.createDate();	
+	
 }
 
 TDate.prototype.addText = function( val ){
@@ -68,9 +83,7 @@ TDate.prototype.initEventBind = function(){
 		});
 		that.wrapDom.style.display = 'block';
 	});
-	this.addEvent( this.wrapDom, 'click', function(e){
-		e.stopPropagation();
-	});
+	
 	this.addEvent( document, 'click', function(){
 		that.wrapDom.style.display = 'none';
 	});
@@ -94,9 +107,9 @@ TDate.prototype.handleMonth = function( y, m ){
 	console.log(this.targetMonth,this.targetYear);
 	//判断左右箭头的显示
 	setTimeout(function(){
-		if( this.str1date(this.startDate)[0] < y ){
+		if( this.str1date( this.options.startDate )[0] < y ){
 			this.wrapDom.querySelector('.left-m-btn').style.display = 'block';
-		}else if( this.str1date(this.startDate)[1] < m ){
+		}else if( this.str1date( this.options.startDate )[1] < m ){
 			this.wrapDom.querySelector('.left-m-btn').style.display = 'block';	
 		}else{
 			this.wrapDom.querySelector('.left-m-btn').style.display = 'none';	
@@ -131,7 +144,7 @@ TDate.prototype.createDate = function( ){
 	wrapDom.style.top = ( _dom.offsetTop + _dom.offsetHeight ) + 'px';
 	
 	var tData = this.handleMonth( this.targetYear, this.targetMonth ); //拿到日期数据
-	console.log( tData );
+//	console.log( tData );
 	var headStr = '<div class="d-header"><div class="left-month month-title"><i class="left-m-btn"></i><span class="t-month">'+ tData[0][0].sy +'年'+ tData[0][0].s_m +'月</span></div><div class="right-month month-title"><i class="right-m-btn"></i><span class="t-month">'+ tData[1][0].sy +'年'+ tData[1][0].s_m +'月</span></div></div>';
 	wrapDom.innerHTML = headStr;
 	var contDom = document.createElement('div');
@@ -144,7 +157,10 @@ TDate.prototype.createDate = function( ){
 
 	document.body.appendChild( wrapDom );
 	
-	
+	//防止点击到日历本身时，事件冒泡
+	this.addEvent( wrapDom, 'click', function(e){
+		e.stopPropagation();
+	});
 	
 	//日期左右按钮 切换
 	var that = this;
@@ -210,7 +226,7 @@ TDate.prototype.handleDomStr = function( tData, contDom ){
 			var dateStr = item.sy + '-' + item.s_m + '-' + item.s_d;
 			
 			
-			if( that.compareStrDate( that.startDate, dateStr ) == 1 ){
+			if( that.compareStrDate( that.options.startDate, dateStr ) == 1 ){
 				var tdClass = 'out-d';
 			}else{
 				var tdClass = 'cho-d';
@@ -254,26 +270,38 @@ TDate.prototype.handleDomStr = function( tData, contDom ){
 	}.bind(this));
 	
 	//给tr绑定事件
-	var tr_list = contDom.querySelectorAll('.cho-d');
-	tr_list.forEach(function( tr, i ){
+	var td_list = contDom.querySelectorAll('.cho-d');
+	td_list.forEach(function( td, i ){
 		(function(i){	
-			that.addEvent( tr, 'click', function(){
+			that.addEvent( td, 'click', function(){
+				that.default_Date = this.id;
 				var this_d = that.formatDate( this.id );
 				
 				that.addText( this_d );
-				that.removeClass( tr_list ,'active')
+				that.removeClass( td_list ,'active')
 				that.addClass( this, 'active' );
 				
 				/*
 				 * this_d  该天的标准日期
 				 * click_date_arr[i] 该天的详情信息
 				 **/
-				that.cb && that.cb( this_d, click_date_arr[i] ); //回掉函数存在时，调用
+				that.options.cb && that.options.cb( this_d, click_date_arr[i] ); //回掉函数存在时，调用
 				that.wrapDom.style.display = "none";
 			});		
 			
-//			that.addEvent( tr, 'mouseover', function(){
-//				console.log(this.id);
+//			that.addEvent( td, 'mouseover', function(){
+//				//console.log(this.id, i );
+//				var this_d = this.id;
+//				var sd = that.default_Date;
+//				that.removeClass( td_list ,'area-d')
+//				td_list.forEach(function(item){
+//					if( that.compareStrDate(item.id, sd) == 1 && that.compareStrDate(item.id, this_d) == -1 ){
+//						that.addClass( item, 'area-d' );
+//					}
+//					
+//				});
+//				
+//				
 //			});	
 			
 		})(i);			
@@ -718,6 +746,7 @@ TDate.prototype.compareStrDate = function(b, e) {
  * @description 日期格式化，加前导零
  */ 
 TDate.prototype.formatDate = function(ymd) {
+	var fep = this.options.fep || '-';
     return ymd.replace(/(\d{4})\-(\d{1,2})\-(\d{1,2})/g, function(ymdFormatDate, y, m, d){
         if(m < 10){
             m = '0' + m;
@@ -725,7 +754,7 @@ TDate.prototype.formatDate = function(ymd) {
         if(d < 10){
             d = '0' + d;
         }
-        return y + '-' + m + '-' + d;
+        return y + fep + m + fep + d;
     });
 };
 
@@ -808,21 +837,3 @@ TDate.prototype.extend = function() {
 　　return target;
 };
 
-var option = {
-	el: '#ipt01',
-	startDate:'', 
-	endDate: '',
-	default_Date:'2018-1-27',
-	cb: function( d, item ){
-		console.log( d, item );
-		d2.init( d );
-		document.querySelector('#ipt02').click();
-	}
-};
-
-
-var d1 = new TDate( option );
-
-var d2 = new TDate({
-	el: "#ipt02"
-});

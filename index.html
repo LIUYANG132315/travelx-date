@@ -129,5 +129,27 @@
 		</div>
 			
 		<script type="text/javascript" src="js/travelx-date.js" ></script>
+		<script>
+			var option01 = {
+				el: '#ipt01',
+				endDate: '',
+				default_Date:'2018-1-27',
+				cb: function( d, item ){
+					console.log( d, item );
+					option02.startDate = d;
+					option02.default_Date = d,
+					d2.init( option02 );
+					document.querySelector('#ipt02').click();
+				}
+			};
+			var option02 = {
+				el: "#ipt02",
+				default_Date:'2018-1-30'
+			};
+			
+			var d1 = new TDate( option01 );
+			
+			var d2 = new TDate( option02 );
+		</script>
 	</body>
 </html>
