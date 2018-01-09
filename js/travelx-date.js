@@ -3,6 +3,12 @@
  * */
 
 function TDate( option ){
+	this.weeks = ["日","一","二","三","四","五","六"];
+	var today = new Date();
+	this.year = today.getFullYear();
+	this.month = today.getMonth();
+	this.day = today.getDate();
+	
 	var dom = option.el;
 	if( typeof dom === "string" ){
 		this.tDom = document.querySelector( dom );
@@ -10,18 +16,14 @@ function TDate( option ){
 		this.tDom = dom;
 	}
 	
-	this.weeks = ["日","一","二","三","四","五","六"];
 	
-	var today = new Date();
-	this.year = today.getFullYear();
-	this.month = today.getMonth();
-	this.day = today.getDate();
-	this.startDate = this.year + '-' + (this.month+1) + '-' + this.day;
+	this.startDate = option.startDate || ( this.year + '-' + (this.month+1) + '-' + this.day );
+	this.default_Date = option.default_Date || ( this.year + '-' + (this.month+1) + '-' + this.day );
+	this.cb = option.cb;
 	
-	this.targetMonth = this.str1date(this.startDate)[1] - 0;
-	this.targetYear = this.str1date(this.startDate)[0] - 0;
-	this.cb = option && option.cb;
 	
+	this.targetMonth = this.str1date(this.default_Date)[1] - 0;
+	this.targetYear = this.str1date(this.default_Date)[0] - 0;
 	this.init();
 }
 
@@ -30,7 +32,7 @@ function TDate( option ){
 TDate.prototype.init = function( datestr ){
 	console.log( this.tDom );
 	
-	if( datestr ){  //创建完成后，刷新
+	if( datestr ){  //创建完成后，刷新 ，保证日历重新传入的那个月开始
 		this.startDate = datestr;
 		this.targetMonth = this.str1date( datestr )[1] - 0;
 		this.targetYear = this.str1date( datestr )[0] - 0;
@@ -44,6 +46,15 @@ TDate.prototype.init = function( datestr ){
 	this.initEventBind(); 
 }
 
+TDate.prototype.addText = function( val ){
+	var tDom = this.tDom;
+	if( tDom.nodeName == "INPUT"){
+		tDom.value = val;
+	}else{
+		tDom.innerText = val;
+	}
+}
+
 /**
  * 初始绑定一些全局事件
  */
@@ -51,14 +62,18 @@ TDate.prototype.initEventBind = function(){
 	var that = this;
 	this.addEvent( this.tDom, 'click', function(e){
 		e.stopPropagation();
+		
+		document.querySelectorAll('.tdate-wrap').forEach(function(item){
+			item.style.display = 'none';
+		});
 		that.wrapDom.style.display = 'block';
-	} );
+	});
 	this.addEvent( this.wrapDom, 'click', function(e){
 		e.stopPropagation();
-	} );
+	});
 	this.addEvent( document, 'click', function(){
 		that.wrapDom.style.display = 'none';
-	} );
+	});
 }
 
 /**
@@ -77,8 +92,21 @@ TDate.prototype.handleMonth = function( y, m ){
 	this.targetMonth = m;
 	this.targetYear = y;
 	console.log(this.targetMonth,this.targetYear);
-	var n = m + 1;
+	//判断左右箭头的显示
+	setTimeout(function(){
+		if( this.str1date(this.startDate)[0] < y ){
+			this.wrapDom.querySelector('.left-m-btn').style.display = 'block';
+		}else if( this.str1date(this.startDate)[1] < m ){
+			this.wrapDom.querySelector('.left-m-btn').style.display = 'block';	
+		}else{
+			this.wrapDom.querySelector('.left-m-btn').style.display = 'none';	
+		}
+		
+	}.bind(this),0);
+	
+	
 	m_data.push( this.getDateInfo( y, m ) );
+	var n = m + 1;
 	
 	if( n > 11 ){
 		n = 0;
@@ -94,9 +122,7 @@ TDate.prototype.handleMonth = function( y, m ){
 }
 //创建日历结构
 TDate.prototype.createDate = function( ){
-	var tData = this.handleMonth( this.targetYear, this.targetMonth ); //拿到日期数据
 	
-	console.log( tData );
 	var _dom = this.tDom;
 	var wrapDom = document.createElement('div');
 	this.wrapDom = wrapDom;
@@ -104,16 +130,21 @@ TDate.prototype.createDate = function( ){
 	wrapDom.style.left = _dom.offsetLeft + 'px';
 	wrapDom.style.top = ( _dom.offsetTop + _dom.offsetHeight ) + 'px';
 	
+	var tData = this.handleMonth( this.targetYear, this.targetMonth ); //拿到日期数据
+	console.log( tData );
 	var headStr = '<div class="d-header"><div class="left-month month-title"><i class="left-m-btn"></i><span class="t-month">'+ tData[0][0].sy +'年'+ tData[0][0].s_m +'月</span></div><div class="right-month month-title"><i class="right-m-btn"></i><span class="t-month">'+ tData[1][0].sy +'年'+ tData[1][0].s_m +'月</span></div></div>';
 	wrapDom.innerHTML = headStr;
 	var contDom = document.createElement('div');
 	contDom.className = "d-cont";
+	
 	
 	this.handleDomStr( tData, contDom  );
 	
 	wrapDom.appendChild( contDom );
 
 	document.body.appendChild( wrapDom );
+	
+	
 	
 	//日期左右按钮 切换
 	var that = this;
@@ -133,6 +164,10 @@ TDate.prototype.createDate = function( ){
 	this.addEvent( r_click_dom, 'click', r_selMonth );
 }
 
+/**
+ * tData  两个月的时间信息
+ * contDom 放日历的盒子
+ */
 TDate.prototype.handleDomStr = function( tData, contDom ){
 	//tData 两个月的时间数据 
 	this.wrapDom.querySelector('.left-month .t-month').innerHTML = tData[0][0].sy +'年'+ tData[0][0].s_m +'月';
@@ -140,6 +175,8 @@ TDate.prototype.handleDomStr = function( tData, contDom ){
 	
 	contDom.innerHTML = '';
 	var that = this;
+	
+	var click_date_arr = [];
 	tData.forEach(function( obj ){
 		var monthDom = document.createElement('div');
 		monthDom.className = "d-month";
@@ -177,8 +214,13 @@ TDate.prototype.handleDomStr = function( tData, contDom ){
 				var tdClass = 'out-d';
 			}else{
 				var tdClass = 'cho-d';
+				click_date_arr.push( item );
 			}
-			
+			//添加默认时间
+			if( that.compareStrDate( that.default_Date, dateStr ) == 0 ){
+				tdClass += ' active';
+				that.addText( that.formatDate( dateStr ) );
+			}
 			
 			if( item.solar_festival ){   //公历节日
 				text = item.solar_festival.slice(0,2);
@@ -217,27 +259,52 @@ TDate.prototype.handleDomStr = function( tData, contDom ){
 		(function(i){	
 			that.addEvent( tr, 'click', function(){
 				var this_d = that.formatDate( this.id );
-				if( that.tDom.nodeName == "INPUT"){
-					that.tDom.value = this_d;
-				}else{
-					that.tDom.innerText = this_d;
-				}
 				
-				console.log( this_d )
-				that.cb && that.cb( this_d );
+				that.addText( this_d );
+				that.removeClass( tr_list ,'active')
+				that.addClass( this, 'active' );
+				
+				/*
+				 * this_d  该天的标准日期
+				 * click_date_arr[i] 该天的详情信息
+				 **/
+				that.cb && that.cb( this_d, click_date_arr[i] ); //回掉函数存在时，调用
 				that.wrapDom.style.display = "none";
-			});			
-		})(i);
-		
-		
+			});		
+			
+//			that.addEvent( tr, 'mouseover', function(){
+//				console.log(this.id);
+//			});	
+			
+		})(i);			
 	});
 	
 	
 //	return monthDom;
 }
 
-
-
+//为某个元素添加类名
+TDate.prototype.addClass = function( dom, cName ){
+	if( dom.length ){
+		dom.forEach(function( item ){
+			item.className = item.className + ' ' + cName;
+		});
+	}else{
+		dom.className = dom.className + ' ' + cName;
+	}
+	
+}
+//删除某个原生的类名
+TDate.prototype.removeClass = function( dom, cName ){
+	if( dom.length ){
+		dom.forEach(function( item ){
+			item.className = item.className.replace( cName, '');
+		});
+	}else{
+		dom.className = dom.className.replace( cName, '');
+	}
+	
+}
 //绑定事件
 TDate.prototype.addEvent = function (ele, type, fn, isC ){
 	var isC = isC || false;
@@ -263,8 +330,6 @@ TDate.prototype.removeEvent = function ( ele, type, fn, isC ){
 	    ele["on"+type] = null;  
     }  
 }  
-
-
 
 
 
@@ -664,14 +729,100 @@ TDate.prototype.formatDate = function(ymd) {
     });
 };
 
+//jquery 的拷贝对象
+TDate.prototype.extend = function() {
+　　/*
+　　*target被扩展的对象
+　　*length参数的数量
+　　*deep是否深度操作
+　　*/
+　　var options, name, src, copy, copyIsArray, clone,
+　　　　target = arguments[0] || {},
+　　　　i = 1,
+　　　　length = arguments.length,
+　　　　deep = false;
+
+　　// target为第一个参数，如果第一个参数是Boolean类型的值，则把target赋值给deep
+　　// deep表示是否进行深层面的复制，当为true时，进行深度复制，否则只进行第一层扩展
+　　// 然后把第二个参数赋值给target
+　　if ( typeof target === "boolean" ) {
+　　　　deep = target;
+　　　　target = arguments[1] || {};
+
+　　　　// 将i赋值为2，跳过前两个参数
+　　　　i = 2;
+　　}
+
+　　// target既不是对象也不是函数则把target设置为空对象。
+　　if ( typeof target !== "object" && !jQuery.isFunction(target) ) {
+　　　　target = {};
+　　}
+
+　　// 如果只有一个参数，则把jQuery对象赋值给target，即扩展到jQuery对象上
+　　if ( length === i ) {
+　　　　target = this;
+
+　　　　// i减1，指向被扩展对象
+　　　　--i;
+　　}
+
+　　// 开始遍历需要被扩展到target上的参数
+
+　　for ( ; i < length; i++ ) {
+　　　　// 处理第i个被扩展的对象，即除去deep和target之外的对象
+　　　　if ( (options = arguments[ i ]) != null ) {
+　　　　　　// 遍历第i个对象的所有可遍历的属性
+　　　　　　for ( name in options ) {
+　　　　　　　　// 根据被扩展对象的键获得目标对象相应值，并赋值给src
+　　　　　　　　src = target[ name ];
+　　　　　　　　// 得到被扩展对象的值
+　　　　　　　　copy = options[ name ];
+
+　　　　　　　　// 这里为什么是比较target和copy？不应该是比较src和copy吗？
+　　　　　　　　if ( target === copy ) {
+　　　　　　　　　　continue;
+　　　　　　　　}
+
+　　　　　　　　// 当用户想要深度操作时，递归合并
+　　　　　　　　// copy是纯对象或者是数组
+　　　　　　　　if ( deep && copy && ( jQuery.isPlainObject(copy) || (copyIsArray = jQuery.isArray(copy)) ) ) {
+　　　　　　　　　　// 如果是数组
+　　　　　　　　　　if ( copyIsArray ) {
+　　　　　　　　　　　　// 将copyIsArray重新设置为false，为下次遍历做准备。
+　　　　　　　　　　　　copyIsArray = false;
+
+　　　　　　　　　　　　clone = src && jQuery.isArray(src) ? src : [];
+　　　　　　　　　　} else { 
+　　　　　　　　　　　　clone = src && jQuery.isPlainObject(src) ? src : {};
+　　　　　　　　　　}
+
+　　　　　　　　　　target[ name ] = jQuery.extend( deep, clone, copy );
+
+　　　　　　　　} else if ( copy !== undefined ) {
+　　　　　　　　　　target[ name ] = copy;
+　　　　　　　　}
+　　　　　　}
+　　　　}
+　　}
+
+　　return target;
+};
 
 var option = {
 	el: '#ipt01',
-	startDate:'2018-1-8', 
+	startDate:'', 
 	endDate: '',
-	cb: function(d){
-		alert(d);
+	default_Date:'2018-1-27',
+	cb: function( d, item ){
+		console.log( d, item );
+		d2.init( d );
+		document.querySelector('#ipt02').click();
 	}
 };
 
+
 var d1 = new TDate( option );
+
+var d2 = new TDate({
+	el: "#ipt02"
+});

@@ -30,6 +30,7 @@
 
 
 .tdate-wrap{
+	display: none;
 	position: absolute;
 	width: 556px;
 	background-color: #fff;
@@ -64,13 +65,23 @@
 	height: 18px;
 	background: #666;
 	cursor: pointer;
+	background: url(../images/d-arrow.png) no-repeat;
 }
 .left-month .left-m-btn{
 	float: left;
+	background-position: left bottom;
+}
+.left-month .left-m-btn:hover{
+	background-position: right bottom;
 }
 .right-month .right-m-btn{
 	float: right;
+	background-position: left top;
 }
+.right-month .right-m-btn:hover{
+	background-position: right top;
+}
+
 
 
 .tdate-wrap .d-cont{
@@ -115,8 +126,9 @@
 .d-month>table td.cho-d{
 	cursor: pointer;
 }
+.d-month>table td.cho-d.active,
 .d-month>table td.cho-d:hover{
-	background-color: #00B2D6;
+	background-color: #7fd7e8;
 	color: #fff;
 }
 
@@ -124,5 +136,7 @@
 	display: block;
 }
 
-
+.d-month>table td.area-d{
+	background-color: #d3f5fc;
+}
 
