@@ -289,20 +289,20 @@ TDate.prototype.handleDomStr = function( tData, contDom ){
 				that.wrapDom.style.display = "none";
 			});		
 			
-//			that.addEvent( td, 'mouseover', function(){
-//				//console.log(this.id, i );
-//				var this_d = this.id;
-//				var sd = that.default_Date;
-//				that.removeClass( td_list ,'area-d')
-//				td_list.forEach(function(item){
-//					if( that.compareStrDate(item.id, sd) == 1 && that.compareStrDate(item.id, this_d) == -1 ){
-//						that.addClass( item, 'area-d' );
-//					}
-//					
-//				});
-//				
-//				
-//			});	
+			that.addEvent( td, 'mouseover', function(){
+				//console.log(this.id, i );
+				var this_d = this.id;
+				var sd = that.default_Date;
+				that.removeClass( td_list ,'area-d')
+				td_list.forEach(function(item){
+					if( that.compareStrDate(item.id, sd) == 1 && that.compareStrDate(item.id, this_d) == -1 ){
+						that.addClass( item, 'area-d' );
+					}
+					
+				});
+				
+				
+			});	
 			
 		})(i);			
 	});
