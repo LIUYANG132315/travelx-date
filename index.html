@@ -133,18 +133,25 @@
 			var option01 = {
 				el: '#ipt01',
 				endDate: '',
-				default_Date:'2018-1-27',
+				default_Date:{
+					isRange: false,
+					d_range: []
+				},
 				cb: function( d, item ){
 					console.log( d, item );
-					option02.startDate = d;
-					option02.default_Date = d,
+					option02.startDate = item.sy + '-' + item.s_m + '-' + item.s_d;
+					option02.default_Date.d_range = [ item.sy + '-' + item.s_m + '-' + item.s_d, item.sy + '-' + item.s_m + '-' + (item.s_d+3) ];
 					d2.init( option02 );
 					document.querySelector('#ipt02').click();
-				}
+				},
+				fep:'/'
 			};
 			var option02 = {
 				el: "#ipt02",
-				default_Date:'2018-1-30'
+				default_Date:{
+					isRange: true,
+					d_range: []
+				}
 			};
 			
 			var d1 = new TDate( option01 );

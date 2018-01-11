@@ -15,12 +15,15 @@ function TDate( param ){
 		el:"", //目标dom
 		startDate: todayStr,  //日期可以选择的开始时间
 		endDate: '',          //日期可以选择的结束时间
-		default_Date: todayStr, //日期默认时间
+		default_Date: {
+			isRange: false,
+			d_range: [todayStr,todayStr]
+		}, //日期默认时间
 		isToday: true,   //今天是否可选
 		fep: '-',
 		cb: null
 	}
-	this.options = this.extend( options, param );
+	this.options = this.extend( true, options, param );
 	console.log( this.options );
 	var dom = this.options.el;
 	if( typeof dom === "string" ){
@@ -38,15 +41,19 @@ function TDate( param ){
 
 TDate.prototype.init = function( n_data ){
 	
-	if( typeof n_data ){
-		this.extend( this.options, n_data );
+	if( typeof n_data === 'object' ){
+		
+		this.extend( true, this.options, n_data );
 	}
 	//this.startDate = this.options.startDate;
 	this.default_Date = this.options.default_Date;
-
-	if( this.default_Date ){
-		this.targetMonth = this.str1date(this.default_Date)[1] - 0;
-		this.targetYear = this.str1date(this.default_Date)[0] - 0;
+	this.refreshDateRange();
+	var def_date = this.range_s; //拿到起始日期
+	console.log( def_date );
+	
+	if( def_date ){
+		this.targetMonth = this.str1date( def_date )[1] - 0;
+		this.targetYear = this.str1date( def_date )[0] - 0;
 	}else{
 		this.targetMonth = this.month;
 		this.targetYear = this.year;
@@ -59,6 +66,25 @@ TDate.prototype.init = function( n_data ){
 	}
 	this.createDate();	
 	
+}
+//刷新日期范围
+TDate.prototype.refreshDateRange = function( i ){
+	this.default_Date.d_range.sort(this.compareStrDate.bind(this));
+	this.range_s = this.default_Date.d_range[0];
+	this.range_e = this.default_Date.d_range[1];
+	
+	if( i ){
+		if( this.compareStrDate(i, this.range_s) >= 0 ){
+			this.default_Date.d_range[1] = i;
+	
+		}else{
+			this.default_Date.d_range[1] = this.default_Date.d_range[0];
+			this.default_Date.d_range[0] = i;
+		}
+	}
+	
+	this.range_s = this.default_Date.d_range[0];
+	this.range_e = this.default_Date.d_range[1];
 }
 
 TDate.prototype.addText = function( val ){
@@ -226,17 +252,25 @@ TDate.prototype.handleDomStr = function( tData, contDom ){
 			var dateStr = item.sy + '-' + item.s_m + '-' + item.s_d;
 			
 			
-			if( that.compareStrDate( that.options.startDate, dateStr ) == 1 ){
+			if( that.compareStrDate( that.options.startDate, dateStr ) == 1 || that.compareStrDate( dateStr, that.options.endDate ) == 1){
 				var tdClass = 'out-d';
 			}else{
 				var tdClass = 'cho-d';
 				click_date_arr.push( item );
 			}
 			//添加默认时间
-			if( that.compareStrDate( that.default_Date, dateStr ) == 0 ){
+			
+			var c1 = that.compareStrDate( that.range_s, dateStr ),
+				c2 = that.compareStrDate( that.range_e, dateStr );
+			if( c1 == 0 || c2 == 0 ){
 				tdClass += ' active';
 				that.addText( that.formatDate( dateStr ) );
 			}
+			
+			if( c1 == -1 && c2 == 1 ){
+				tdClass += ' area-d';
+			}
+			
 			
 			if( item.solar_festival ){   //公历节日
 				text = item.solar_festival.slice(0,2);
@@ -270,16 +304,44 @@ TDate.prototype.handleDomStr = function( tData, contDom ){
 	}.bind(this));
 	
 	//给tr绑定事件
+	
 	var td_list = contDom.querySelectorAll('.cho-d');
+	console.log(td_list.length,'=============');
 	td_list.forEach(function( td, i ){
 		(function(i){	
 			that.addEvent( td, 'click', function(){
-				that.default_Date = this.id;
 				var this_d = that.formatDate( this.id );
-				
 				that.addText( this_d );
-				that.removeClass( td_list ,'active')
-				that.addClass( this, 'active' );
+			
+				if( that.default_Date.isRange ){  //需要显示范围
+					that.refreshDateRange(this.id );
+					
+				}else{
+					that.default_Date.d_range = [this.id,this.id];
+					that.refreshDateRange();
+					
+				}
+				var sd = that.range_s;
+				var ed = that.range_e;
+				console.log(sd,ed);
+				
+				td_list.forEach(function(item){
+					 if( that.compareStrDate(item.id, sd) == 0 || that.compareStrDate(item.id, ed) == 0 ){
+					 	
+					 	that.addClass( item, 'active' );
+					 }else{
+					 	that.removeClass( item, 'active' );
+					 }
+					 if( that.default_Date.isRange ){  //需要显示范围
+						 if( that.compareStrDate(item.id, sd) == 1 && that.compareStrDate(item.id, ed) == -1 ){
+							that.addClass( item, 'area-d' );
+						 }else{
+							that.removeClass( item ,'area-d');
+						 }
+					}
+				});
+				
+				
 				
 				/*
 				 * this_d  该天的标准日期
@@ -289,21 +351,52 @@ TDate.prototype.handleDomStr = function( tData, contDom ){
 				that.wrapDom.style.display = "none";
 			});		
 			
-			that.addEvent( td, 'mouseover', function(){
-				//console.log(this.id, i );
-				var this_d = this.id;
-				var sd = that.default_Date;
-				that.removeClass( td_list ,'area-d')
-				td_list.forEach(function(item){
-					if( that.compareStrDate(item.id, sd) == 1 && that.compareStrDate(item.id, this_d) == -1 ){
-						that.addClass( item, 'area-d' );
-					}
+			if( that.default_Date.isRange ){  //需要显示范围
+				that.addEvent( td, 'mouseover', function(){
+					//console.log(this.id, i );
+					
+					var sd = that.range_s;
+					var ed = this.id;
+					console.log(sd,ed);
+					td_list.forEach(function(item){
+						 if( that.compareStrDate(item.id, sd) == 0 || that.compareStrDate(item.id, ed) == 0 ){
+						 	
+						 	that.addClass( item, 'active' );
+						 }else{
+						 	that.removeClass( item, 'active' );
+						 }
+						 if( that.compareStrDate(item.id, sd) == 1 && that.compareStrDate(item.id, ed) == -1 ){
+							that.addClass( item, 'area-d' );
+						 }else{
+							that.removeClass( item ,'area-d');
+						 }
+						
+					});
 					
 				});
-				
-				
-			});	
-			
+				that.addEvent( td, 'mouseout', function(){
+	
+					var sd = that.range_s;
+					var ed = that.range_e;
+					console.log(sd,ed);
+					td_list.forEach(function(item){
+						 if( that.compareStrDate(item.id, sd) == 0 || that.compareStrDate(item.id, ed) == 0 ){
+						 	
+						 	that.addClass( item, 'active' );
+						 }else{
+						 	that.removeClass( item, 'active' );
+						 }
+						 if( that.compareStrDate(item.id, sd) == 1 && that.compareStrDate(item.id, ed) == -1 ){
+							that.addClass( item, 'area-d' );
+						 }else{
+							that.removeClass( item ,'area-d');
+						 }
+						
+					});
+	
+					
+				});	
+			}
 		})(i);			
 	});
 	
@@ -318,7 +411,10 @@ TDate.prototype.addClass = function( dom, cName ){
 			item.className = item.className + ' ' + cName;
 		});
 	}else{
-		dom.className = dom.className + ' ' + cName;
+		if( dom.className.indexOf( cName ) == -1 ){
+			dom.className = dom.className + ' ' + cName;
+		}
+		
 	}
 	
 }
@@ -329,7 +425,8 @@ TDate.prototype.removeClass = function( dom, cName ){
 			item.className = item.className.replace( cName, '');
 		});
 	}else{
-		dom.className = dom.className.replace( cName, '');
+		var rf = new RegExp( cName, 'g' );
+		dom.className = dom.className.replace( rf, '');
 	}
 	
 }
@@ -758,82 +855,77 @@ TDate.prototype.formatDate = function(ymd) {
     });
 };
 
-//jquery 的拷贝对象
-TDate.prototype.extend = function() {
-　　/*
-　　*target被扩展的对象
-　　*length参数的数量
-　　*deep是否深度操作
-　　*/
-　　var options, name, src, copy, copyIsArray, clone,
-　　　　target = arguments[0] || {},
-　　　　i = 1,
-　　　　length = arguments.length,
-　　　　deep = false;
+//模拟jquery.extend 方法的拷贝对象
+TDate.prototype.extend = function(deep, target, options){
+	var copyIsArray,  
+        toString = Object.prototype.toString,  
+        hasOwn = Object.prototype.hasOwnProperty;  
+  
+    var class2type = {  
+        '[object Boolean]' : 'boolean',  
+        '[object Number]' : 'number',  
+        '[object String]' : 'string',  
+        '[object Function]' : 'function',  
+        '[object Array]' : 'array',  
+        '[object Date]' : 'date',  
+        '[object RegExp]' : 'regExp',  
+        '[object Object]' : 'object'  
+    }; 
+  
+    var type = function(obj) {  
+        return obj == null ? String(obj) : class2type[toString.call(obj)] || "object";  
+    }; 
+  
+    var isWindow = function(obj) {  
+        return obj && typeof obj === "object" && "setInterval" in obj;  
+    }; 
+	var isArray = Array.isArray || function(obj) {  
+        return type(obj) === "array";  
+    };  
+  
+    var isPlainObject = function(obj) {  
+        if (!obj || type(obj) !== "object" || obj.nodeType || isWindow(obj)) {  
+            return false;  
+        }  
+  
+        if (obj.constructor && !hasOwn.call(obj, "constructor")  
+                && !hasOwn.call(obj.constructor.prototype, "isPrototypeOf")) {  
+            return false;  
+        }  
+  
+        var key;  
+        for (key in obj) {  
+        }  
+  
+        return key === undefined || hasOwn.call(obj, key);  
+    };
+    var extend = function(deep, target, options) {
+        for (name in options) {  
+            src = target[name];  
+            copy = options[name];  
+  
+            if (target === copy) { continue; }  
+  
+            if (deep && copy  
+                    && (isPlainObject(copy) || (copyIsArray = isArray(copy)))) {  
+                if (copyIsArray) {  
+                    copyIsArray = false;  
+                    clone = src && isArray(src) ? src : [];  
+  
+                } else {  
+                    clone = src && isPlainObject(src) ? src : {};  
+                }  
+  
+                target[name] = extend(deep, clone, copy);  
+            } else if (copy !== undefined) {  
+                target[name] = copy;  
+            }  
+        }  
+  
+        return target;  
+    }; 
+    
+    return extend(deep, target, options);
 
-　　// target为第一个参数，如果第一个参数是Boolean类型的值，则把target赋值给deep
-　　// deep表示是否进行深层面的复制，当为true时，进行深度复制，否则只进行第一层扩展
-　　// 然后把第二个参数赋值给target
-　　if ( typeof target === "boolean" ) {
-　　　　deep = target;
-　　　　target = arguments[1] || {};
-
-　　　　// 将i赋值为2，跳过前两个参数
-　　　　i = 2;
-　　}
-
-　　// target既不是对象也不是函数则把target设置为空对象。
-　　if ( typeof target !== "object" && !jQuery.isFunction(target) ) {
-　　　　target = {};
-　　}
-
-　　// 如果只有一个参数，则把jQuery对象赋值给target，即扩展到jQuery对象上
-　　if ( length === i ) {
-　　　　target = this;
-
-　　　　// i减1，指向被扩展对象
-　　　　--i;
-　　}
-
-　　// 开始遍历需要被扩展到target上的参数
-
-　　for ( ; i < length; i++ ) {
-　　　　// 处理第i个被扩展的对象，即除去deep和target之外的对象
-　　　　if ( (options = arguments[ i ]) != null ) {
-　　　　　　// 遍历第i个对象的所有可遍历的属性
-　　　　　　for ( name in options ) {
-　　　　　　　　// 根据被扩展对象的键获得目标对象相应值，并赋值给src
-　　　　　　　　src = target[ name ];
-　　　　　　　　// 得到被扩展对象的值
-　　　　　　　　copy = options[ name ];
-
-　　　　　　　　// 这里为什么是比较target和copy？不应该是比较src和copy吗？
-　　　　　　　　if ( target === copy ) {
-　　　　　　　　　　continue;
-　　　　　　　　}
-
-　　　　　　　　// 当用户想要深度操作时，递归合并
-　　　　　　　　// copy是纯对象或者是数组
-　　　　　　　　if ( deep && copy && ( jQuery.isPlainObject(copy) || (copyIsArray = jQuery.isArray(copy)) ) ) {
-　　　　　　　　　　// 如果是数组
-　　　　　　　　　　if ( copyIsArray ) {
-　　　　　　　　　　　　// 将copyIsArray重新设置为false，为下次遍历做准备。
-　　　　　　　　　　　　copyIsArray = false;
-
-　　　　　　　　　　　　clone = src && jQuery.isArray(src) ? src : [];
-　　　　　　　　　　} else { 
-　　　　　　　　　　　　clone = src && jQuery.isPlainObject(src) ? src : {};
-　　　　　　　　　　}
-
-　　　　　　　　　　target[ name ] = jQuery.extend( deep, clone, copy );
-
-　　　　　　　　} else if ( copy !== undefined ) {
-　　　　　　　　　　target[ name ] = copy;
-　　　　　　　　}
-　　　　　　}
-　　　　}
-　　}
-
-　　return target;
-};
+};  
 
