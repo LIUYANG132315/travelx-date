@@ -13,18 +13,19 @@ function TDate( param ){
 	
 	var options = {
 		el:"", //目标dom
-		startDate: todayStr,  //日期可以选择的开始时间
+		startDate: todayStr,  //日期可以选择的开始时间， 默认今天
 		endDate: '',          //日期可以选择的结束时间
 		default_Date: {
-			isRange: false,
-			d_range: [todayStr,todayStr]
+			isRange: false,   //是否显示日期范围效果
+			d_range: [todayStr,todayStr]   //数组第一项 小日期， 第二项 大日期
 		}, //日期默认时间
-		isToday: true,   //今天是否可选
-		fep: '-',
-		cb: null
+		isToday: true,   //今天是否可选， 默认可选
+		fep: '-', //分割符
+		cb: null,
+		isShow: false   //初始是否显示日历， 默认不显示
 	}
 	this.options = this.extend( true, options, param );
-	console.log( this.options );
+	
 	var dom = this.options.el;
 	if( typeof dom === "string" ){
 		this.tDom = document.querySelector( dom );
@@ -45,11 +46,12 @@ TDate.prototype.init = function( n_data ){
 		
 		this.extend( true, this.options, n_data );
 	}
+	console.log( this.options );
 	//this.startDate = this.options.startDate;
 	this.default_Date = this.options.default_Date;
 	this.refreshDateRange();
 	var def_date = this.range_s; //拿到起始日期
-	console.log( def_date );
+//	console.log( def_date );
 	
 	if( def_date ){
 		this.targetMonth = this.str1date( def_date )[1] - 0;
@@ -130,7 +132,7 @@ TDate.prototype.handleMonth = function( y, m ){
 	}
 	this.targetMonth = m;
 	this.targetYear = y;
-	console.log(this.targetMonth,this.targetYear);
+	//console.log(this.targetMonth,this.targetYear);
 	//判断左右箭头的显示
 	setTimeout(function(){
 		if( this.str1date( this.options.startDate )[0] < y ){
@@ -160,15 +162,19 @@ TDate.prototype.handleMonth = function( y, m ){
 	return m_data;
 }
 //创建日历结构
-TDate.prototype.createDate = function( ){
+TDate.prototype.createDate = function(){
 	
 	var _dom = this.tDom;
 	var wrapDom = document.createElement('div');
 	this.wrapDom = wrapDom;
 	wrapDom.className = "tdate-wrap";
-	wrapDom.style.left = _dom.offsetLeft + 'px';
-	wrapDom.style.top = ( _dom.offsetTop + _dom.offsetHeight ) + 'px';
-	
+	wrapDom.style.left = this.offset( _dom ).left + 'px';
+	wrapDom.style.top = ( this.offset(_dom).top + _dom.offsetHeight ) + 'px';
+	if( this.options.isShow ){
+		wrapDom.style.display = "block";
+	}else{
+		wrapDom.style.display = "none";
+	}
 	var tData = this.handleMonth( this.targetYear, this.targetMonth ); //拿到日期数据
 //	console.log( tData );
 	var headStr = '<div class="d-header"><div class="left-month month-title"><i class="left-m-btn"></i><span class="t-month">'+ tData[0][0].sy +'年'+ tData[0][0].s_m +'月</span></div><div class="right-month month-title"><i class="right-m-btn"></i><span class="t-month">'+ tData[1][0].sy +'年'+ tData[1][0].s_m +'月</span></div></div>';
@@ -204,6 +210,23 @@ TDate.prototype.createDate = function( ){
 	var r_click_dom = wrapDom.querySelector('.right-m-btn');
 	this.addEvent( l_click_dom, 'click', l_selMonth );
 	this.addEvent( r_click_dom, 'click', r_selMonth );
+}
+//算出元素在页面的位置
+TDate.prototype.offset = function(dom){
+	function getTop(e){ 
+		var offset=e.offsetTop; 
+		if(e.offsetParent!=null) offset+=getTop(e.offsetParent); 
+		return offset; 
+	} 
+	function getLeft(e){ 
+		var offset=e.offsetLeft; 
+		if(e.offsetParent!=null) offset+=getLeft(e.offsetParent); 
+		return offset; 
+	} 
+	return{
+		top: getTop( dom ),
+		left: getLeft( dom )
+	}
 }
 
 /**
@@ -264,7 +287,7 @@ TDate.prototype.handleDomStr = function( tData, contDom ){
 				c2 = that.compareStrDate( that.range_e, dateStr );
 			if( c1 == 0 || c2 == 0 ){
 				tdClass += ' active';
-				that.addText( that.formatDate( dateStr ) );
+				that.addText( that.formatDate( dateStr, that.options.fep ) );
 			}
 			
 			if( c1 == -1 && c2 == 1 ){
@@ -306,24 +329,24 @@ TDate.prototype.handleDomStr = function( tData, contDom ){
 	//给tr绑定事件
 	
 	var td_list = contDom.querySelectorAll('.cho-d');
-	console.log(td_list.length,'=============');
+	
 	td_list.forEach(function( td, i ){
 		(function(i){	
 			that.addEvent( td, 'click', function(){
 				var this_d = that.formatDate( this.id );
-				that.addText( this_d );
+				that.addText( that.options.fep ? this_d.replace( /-/g, that.options.fep ) : this_d );
 			
 				if( that.default_Date.isRange ){  //需要显示范围
 					that.refreshDateRange(this.id );
 					
 				}else{
-					that.default_Date.d_range = [this.id,this.id];
-					that.refreshDateRange();
+					that.default_Date.d_range = [this.id,this.id];  //让时间范围，两端相同
+					that.refreshDateRange();    //刷新一下，that.range_s  that.range_e
 					
 				}
 				var sd = that.range_s;
 				var ed = that.range_e;
-				console.log(sd,ed);
+//				console.log(sd,ed);
 				
 				td_list.forEach(function(item){
 					 if( that.compareStrDate(item.id, sd) == 0 || that.compareStrDate(item.id, ed) == 0 ){
@@ -357,7 +380,7 @@ TDate.prototype.handleDomStr = function( tData, contDom ){
 					
 					var sd = that.range_s;
 					var ed = this.id;
-					console.log(sd,ed);
+				
 					td_list.forEach(function(item){
 						 if( that.compareStrDate(item.id, sd) == 0 || that.compareStrDate(item.id, ed) == 0 ){
 						 	
@@ -378,7 +401,6 @@ TDate.prototype.handleDomStr = function( tData, contDom ){
 	
 					var sd = that.range_s;
 					var ed = that.range_e;
-					console.log(sd,ed);
 					td_list.forEach(function(item){
 						 if( that.compareStrDate(item.id, sd) == 0 || that.compareStrDate(item.id, ed) == 0 ){
 						 	
@@ -842,8 +864,8 @@ TDate.prototype.compareStrDate = function(b, e) {
 /**
  * @description 日期格式化，加前导零
  */ 
-TDate.prototype.formatDate = function(ymd) {
-	var fep = this.options.fep || '-';
+TDate.prototype.formatDate = function(ymd, fep ) {
+	var fep = fep || '-';
     return ymd.replace(/(\d{4})\-(\d{1,2})\-(\d{1,2})/g, function(ymdFormatDate, y, m, d){
         if(m < 10){
             m = '0' + m;
