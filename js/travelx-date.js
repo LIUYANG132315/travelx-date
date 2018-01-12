@@ -105,8 +105,9 @@ TDate.prototype.initEventBind = function(){
 	var that = this;
 	this.addEvent( this.tDom, 'click', function(e){
 		e.stopPropagation();
-		
-		document.querySelectorAll('.tdate-wrap').forEach(function(item){
+		var wrap_list = document.querySelectorAll('.tdate-wrap');
+		wrap_list = Array.prototype.slice.call( wrap_list, 0 );
+		wrap_list.forEach(function(item){
 			item.style.display = 'none';
 		});
 		that.wrapDom.style.display = 'block';
@@ -168,8 +169,7 @@ TDate.prototype.createDate = function(){
 	var wrapDom = document.createElement('div');
 	this.wrapDom = wrapDom;
 	wrapDom.className = "tdate-wrap";
-	wrapDom.style.left = this.offset( _dom ).left + 'px';
-	wrapDom.style.top = ( this.offset(_dom).top + _dom.offsetHeight ) + 'px';
+	
 	if( this.options.isShow ){
 		wrapDom.style.display = "block";
 	}else{
@@ -188,6 +188,9 @@ TDate.prototype.createDate = function(){
 	wrapDom.appendChild( contDom );
 
 	document.body.appendChild( wrapDom );
+	
+	wrapDom.style.left = this.offset( _dom ).left + 'px';
+	wrapDom.style.top = ( this.offset(_dom).top + _dom.offsetHeight ) + 'px';
 	
 	//防止点击到日历本身时，事件冒泡
 	this.addEvent( wrapDom, 'click', function(e){
@@ -223,9 +226,34 @@ TDate.prototype.offset = function(dom){
 		if(e.offsetParent!=null) offset+=getLeft(e.offsetParent); 
 		return offset; 
 	} 
+	function getStyle(obj,attr){
+		var ie = !+"\v1";//简单判断ie6~8
+		if(attr=="backgroundPosition"){
+			if(ie){        
+				return obj.currentStyle.backgroundPositionX +" "+obj.currentStyle.backgroundPositionY;
+			}
+		}
+		if(obj.currentStyle){
+			return obj.currentStyle[attr];
+		}else{
+			return document.defaultView.getComputedStyle(obj,null)[attr];
+		}
+	}
+	var left = getLeft( dom );
+	var sw;  //屏幕宽度
+	if( window.innerWidth ){
+		sw = window.innerWidth;
+	}else{
+		sw = document.body.offsetWidth;
+	}
+	var t_w = getStyle( this.wrapDom, "width" );
+	var cd = left + parseInt( t_w );  //日历距屏幕左边距离 + 日历的宽度
+	if( cd > sw ){  //当 日历距屏幕左边距离 + 日历的宽度  大于 屏幕宽度时，  日历从右边显示
+		left = left - ( parseInt( t_w ) - dom.offsetWidth );
+	}
 	return{
 		top: getTop( dom ),
-		left: getLeft( dom )
+		left: left
 	}
 }
 
@@ -329,6 +357,25 @@ TDate.prototype.handleDomStr = function( tData, contDom ){
 	//给tr绑定事件
 	
 	var td_list = contDom.querySelectorAll('.cho-d');
+	console.log(td_list);
+	td_list = Array.prototype.slice.call( td_list, 0 );
+	
+	function renderTr( sd, ed ){  //把两个日期之间,标成区间颜色
+		td_list.forEach(function(item){
+			 if( that.compareStrDate(item.id, sd) == 0 || that.compareStrDate(item.id, ed) == 0 ){
+			 	that.addClass( item, 'active' );
+			 }else{
+			 	that.removeClass( item, 'active' );
+			 }
+			 if( that.default_Date.isRange ){  //需要显示范围
+				 if( that.compareStrDate(item.id, sd) == 1 && that.compareStrDate(item.id, ed) == -1 ){
+					that.addClass( item, 'area-d' );
+				 }else{
+					that.removeClass( item ,'area-d');
+				 }
+			}
+		});
+	}
 	
 	td_list.forEach(function( td, i ){
 		(function(i){	
@@ -348,21 +395,7 @@ TDate.prototype.handleDomStr = function( tData, contDom ){
 				var ed = that.range_e;
 //				console.log(sd,ed);
 				
-				td_list.forEach(function(item){
-					 if( that.compareStrDate(item.id, sd) == 0 || that.compareStrDate(item.id, ed) == 0 ){
-					 	
-					 	that.addClass( item, 'active' );
-					 }else{
-					 	that.removeClass( item, 'active' );
-					 }
-					 if( that.default_Date.isRange ){  //需要显示范围
-						 if( that.compareStrDate(item.id, sd) == 1 && that.compareStrDate(item.id, ed) == -1 ){
-							that.addClass( item, 'area-d' );
-						 }else{
-							that.removeClass( item ,'area-d');
-						 }
-					}
-				});
+				renderTr( sd, ed );
 				
 				
 				
@@ -380,42 +413,16 @@ TDate.prototype.handleDomStr = function( tData, contDom ){
 					
 					var sd = that.range_s;
 					var ed = this.id;
-				
-					td_list.forEach(function(item){
-						 if( that.compareStrDate(item.id, sd) == 0 || that.compareStrDate(item.id, ed) == 0 ){
-						 	
-						 	that.addClass( item, 'active' );
-						 }else{
-						 	that.removeClass( item, 'active' );
-						 }
-						 if( that.compareStrDate(item.id, sd) == 1 && that.compareStrDate(item.id, ed) == -1 ){
-							that.addClass( item, 'area-d' );
-						 }else{
-							that.removeClass( item ,'area-d');
-						 }
-						
-					});
+					renderTr( sd, ed );
+
 					
 				});
 				that.addEvent( td, 'mouseout', function(){
 	
 					var sd = that.range_s;
 					var ed = that.range_e;
-					td_list.forEach(function(item){
-						 if( that.compareStrDate(item.id, sd) == 0 || that.compareStrDate(item.id, ed) == 0 ){
-						 	
-						 	that.addClass( item, 'active' );
-						 }else{
-						 	that.removeClass( item, 'active' );
-						 }
-						 if( that.compareStrDate(item.id, sd) == 1 && that.compareStrDate(item.id, ed) == -1 ){
-							that.addClass( item, 'area-d' );
-						 }else{
-							that.removeClass( item ,'area-d');
-						 }
-						
-					});
-	
+					renderTr( sd, ed );
+
 					
 				});	
 			}
@@ -950,4 +957,5 @@ TDate.prototype.extend = function(deep, target, options){
     return extend(deep, target, options);
 
 };  
+
 
